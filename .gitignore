@@ -1,0 +1,60 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Environments
+venv/
+.env
+.env.*
+
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+
+# VSCode
+.vscode/
+
+
+# Mac
+.DS_Store
+
+
+# PyCharm
+.idea/
+
+
+# Coverage
+htmlcov/
+.coverage
+
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+
+# Secrets
+*.pem
+
+
+# Node / frontend
+node_modules/
+npm-debug.log
+yarn-error.log
+
+
+# Azure
+.azure-pipelines.yml
+
+
+# local files
+*.sqlite3
