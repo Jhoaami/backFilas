@@ -6,6 +6,10 @@ class SetDatabaseRoleMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        
+        if request.path.startswith("/api/auth/registro") or request.path.startswith("/admin"):
+            return self.get_response(request)
+        
         # Mapeamos los roles de Django a los roles de la base de datos
         # Nota: Los nombres deben coincidir con los que creaste en PostgreSQL
         role_map = {
@@ -33,6 +37,7 @@ class SetDatabaseRoleMiddleware:
             
         finally:
             # MUY IMPORTANTE: Reseteamos el rol al final de la petición
+            
             # para que la conexión vuelva a su estado original para la siguiente petición.
             cursor.execute("RESET ROLE")
             cursor.close()
