@@ -33,7 +33,12 @@ SECRET_KEY = 'django-insecure-mb!eu3@so5k7u6z#(!6k+j&b&(2sw5jw5uv6%!tdd9&f4iaenf
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',                         # Desarrollo local
+    '127.0.0.1',                         # Loopback local
+    '10.0.2.2',                          # IP usada por emuladores Android
+    'filas-hospital-santa-barbara.onrender.com', # Dominio del backend desplegado en Render
+]
 
 
 # Application definition
