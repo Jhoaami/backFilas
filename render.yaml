@@ -1,0 +1,24 @@
+services:
+  - type: web                   # Tipo de servicio: aplicación web
+    name: django-app             # Nombre del servicio en Render
+    env: python                  # Entorno: Python
+    plan: free                   # Plan de Render (free tier)
+
+    # ---------------- Build ----------------
+    buildCommand: |
+      pip install -r requirements.txt          # Instala dependencias
+      python manage.py migrate --noinput       # Aplica migraciones en la DB
+      python manage.py collectstatic --noinput # Recolecta archivos estáticos
+
+    # ---------------- Start ----------------
+    startCommand: "gunicorn filas_hospital_sb.wsgi:application"
+    # Gunicorn se usa como servidor WSGI para producción en Render
+
+    # ---------------- Variables de entorno ----------------
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # No se expone en el repositorio, se configura en Render
+      - key: SECRET_KEY
+        sync: false   # Clave secreta de Django, gestionada en Render
+      - key: DEBUG
+        sync: false   # Modo debug (normalmente false en producción)
