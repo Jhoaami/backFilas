@@ -11,7 +11,7 @@ services:
       python manage.py collectstatic --noinput # Recolecta archivos estáticos
 
     # ---------------- Start ----------------
-    startCommand: "gunicorn filas_hospital_sb.wsgi:application"
+    startCommand: "gunicorn hospitalcore.wsgi:application"
     # Gunicorn se usa como servidor WSGI para producción en Render
 
     # ---------------- Variables de entorno ----------------
