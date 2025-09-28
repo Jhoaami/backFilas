@@ -1,49 +1,84 @@
-from rest_framework import generics, viewsets, status, permissions
+from rest_framework import viewsets, generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, models
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from .models import Specialty, Queue, Ticket
-from .serializers import UserSerializer, SpecialtySerializer, QueueSerializer, TicketSerializer, CustomTokenObtainPairSerializer
+from .serializers import (
+    UserSerializer, SpecialtySerializer, QueueSerializer, TicketSerializer,
+    CustomTokenObtainPairSerializer, TicketStatusUpdateSerializer
+)
+from .permissions import IsAdmin, IsDoctor # Importamos nuestros permisos
 
 User = get_user_model()
-
-# --- Vistas de Autenticación y Usuarios ---
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny] # Cualquiera puede registrarse
+    permission_classes = [permissions.AllowAny]
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-# --- Vistas para Administradores ---
-# Un ViewSet combina la lógica para varias operaciones (list, create, retrieve, update, delete)
 
+# --- VISTAS PARA ADMINISTRADORES ---
 class SpecialtyViewSet(viewsets.ModelViewSet):
+    """
+    API para Crear, Ver, Editar y Eliminar Especialidades.
+    Solo para Administradores.
+    """
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
-    permission_classes = [permissions.IsAdminUser] # Solo los admins pueden gestionar especialidades
+    permission_classes = [IsAdmin]
 
 class QueueViewSet(viewsets.ModelViewSet):
+    """
+    API para Crear, Ver, Editar y Eliminar Filas.
+    Solo para Administradores.
+    """
     queryset = Queue.objects.all()
     serializer_class = QueueSerializer
-    permission_classes = [permissions.IsAdminUser] # Solo los admins pueden gestionar filas
+    permission_classes = [IsAdmin]
 
-# --- Vistas para Pacientes y Doctores ---
 
-class AvailableQueuesView(generics.ListAPIView):
+# --- VISTAS PARA DOCTORES ---
+class DoctorQueuesView(generics.ListAPIView):
     """
-    Devuelve las filas activas para el día de hoy.
-    - Filtra por el día de la semana actual.
-    - Sábados y Domingos solo muestra emergencias.
-    - Para el resto de días, muestra emergencias y las filas del día.
+    Devuelve las filas asignadas al doctor que hace la petición.
     """
     serializer_class = QueueSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self):
+        return Queue.objects.filter(doctor=self.request.user)
+
+class UpdateTicketStatusView(generics.UpdateAPIView):
+    """
+    Permite a un doctor finalizar un ticket.
+    """
+    queryset = Ticket.objects.all()
+    serializer_class = TicketStatusUpdateSerializer
+    permission_classes = [IsDoctor]
+
+    def update(self, request, *args, **kwargs):
+        ticket = self.get_object()
+        # Verificación de seguridad: el doctor solo puede modificar tickets de sus propias filas.
+        if ticket.queue.doctor != request.user:
+            return Response(
+                {"error": "No tiene permiso para modificar este ticket."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+
+# --- VISTAS PARA PACIENTES Y PÚBLICAS ---
+
+class AvailableQueuesView(generics.ListAPIView):
+    serializer_class = QueueSerializer
+    permission_classes = [permissions.IsAuthenticated] # Paciente o Doctor
 
     def get_queryset(self):
         today = timezone.now()
@@ -114,9 +149,7 @@ class CreateTicketView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class MyTicketsView(generics.ListAPIView):
-    """
-    Devuelve las fichas que un paciente tiene para el día de hoy.
-    """
+    """ Devuelve las fichas que un paciente tiene para hoy. """
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -126,6 +159,15 @@ class MyTicketsView(generics.ListAPIView):
         return Ticket.objects.filter(paciente=user, fecha_validez=today)
 
 class QueueTicketsView(generics.ListAPIView):
+    """ Vista para la transparencia: devuelve las fichas de una fila para hoy. """
+    serializer_class = TicketSerializer
+    permission_classes = [permissions.IsAuthenticated] # Cualquiera autenticado puede verlas
+
+    def get_queryset(self):
+        queue_id = self.kwargs['queue_id']
+        today = timezone.now().date()
+        return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
+
     """
     Vista para la transparencia: devuelve las fichas de una fila para hoy.
     """
