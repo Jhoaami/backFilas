@@ -16,6 +16,12 @@ class UserSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'is_active']
+        read_only_fields = ['numero_carnet', 'rol']
+
 class CustomTokenObtainPairSerializer(serializers.Serializer):
     # ... (sin cambios) ...
     numero_carnet = serializers.CharField()
@@ -83,3 +89,11 @@ class TicketStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = ['status']
+
+#Para administrar usuarios  
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'is_active']
+        read_only_fields = ['numero_carnet']  # El número de carnet no se debe modificar
+

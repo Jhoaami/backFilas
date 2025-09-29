@@ -1,22 +1,26 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    RegisterView, CustomTokenObtainPairView,
+    RegisterView, CustomTokenObtainPairView, UserProfileView,
     SpecialtyViewSet, QueueViewSet,
     AvailableQueuesView, CreateTicketView, MyTicketsView, QueueTicketsView,
-    DoctorQueuesView, UpdateTicketStatusView
+    DoctorQueuesView, UpdateTicketStatusView, UserViewSet, PublicSpecialtyView
 )
 
 router = DefaultRouter()
 # Rutas para Admins 
 router.register(r'especialidades', SpecialtyViewSet, basename='specialty')
 router.register(r'filas', QueueViewSet, basename='queue-admin')
+router.register(r'usuarios', UserViewSet, basename='user-admin')
+
 
 urlpatterns = [
     # Autenticación
     path('auth/registro/', RegisterView.as_view(), name='register'),
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     
+    #Ruta para ver perfil de usuario
+    path('auth/perfil/', UserProfileView.as_view(), name='user-profile'),
     # Rutas para la gestión de Administradores
     path('gestion/', include(router.urls)),
     
@@ -29,4 +33,5 @@ urlpatterns = [
     path('filas/<int:queue_id>/tickets/', QueueTicketsView.as_view(), name='queue-tickets'),
     path('tickets/crear/', CreateTicketView.as_view(), name='create-ticket'),
     path('mis-tickets/', MyTicketsView.as_view(), name='my-tickets'),
+    path('buscar-epecialidades/', PublicSpecialtyView.as_view(), name='public-specialties'),
 ]

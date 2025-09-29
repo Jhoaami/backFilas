@@ -2,14 +2,15 @@ from rest_framework import viewsets, generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import filters
 from django.utils import timezone
 from django.db import transaction, models
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from .models import Specialty, Queue, Ticket
 from .serializers import (
-    UserSerializer, SpecialtySerializer, QueueSerializer, TicketSerializer,
-    CustomTokenObtainPairSerializer, TicketStatusUpdateSerializer
+    UserSerializer, UserProfileSerializer, SpecialtySerializer, QueueSerializer, TicketSerializer,
+    CustomTokenObtainPairSerializer, TicketStatusUpdateSerializer, AdminUserSerializer
 )
 from .permissions import IsAdmin, IsDoctor # Importamos nuestros permisos
 
@@ -22,6 +23,24 @@ class RegisterView(generics.CreateAPIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class UserProfileView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class UserProfileView(generics.RetrieveAPIView):
+    """
+    Devuelve el perfil del usuario autenticado.
+    """
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 
 # --- VISTAS PARA ADMINISTRADORES ---
@@ -43,6 +62,30 @@ class QueueViewSet(viewsets.ModelViewSet):
     serializer_class = QueueSerializer
     permission_classes = [IsAdmin]
 
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API para que los administradores gestionen usuarios:
+    - Listar usuarios
+    - Buscar por número de carnet o nombre
+    - Cambiar rol (Paciente, Doctor, Admin)
+    - Activar/desactivar usuarios
+    """
+    queryset = User.objects.all()
+    serializer_class = AdminUserSerializer
+    permission_classes = [IsAdmin]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['numero_carnet', 'nombre']  # Buscar por CI o nombre
+
+    """
+    Vista para la transparencia: devuelve las fichas de una fila para hoy.
+    """
+    serializer_class = TicketSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queue_id = self.kwargs['queue_id']
+        today = timezone.now().date()
+        return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
 
 # --- VISTAS PARA DOCTORES ---
 class DoctorQueuesView(generics.ListAPIView):
@@ -168,13 +211,14 @@ class QueueTicketsView(generics.ListAPIView):
         today = timezone.now().date()
         return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
 
-    """
-    Vista para la transparencia: devuelve las fichas de una fila para hoy.
-    """
-    serializer_class = TicketSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
 
-    def get_queryset(self):
-        queue_id = self.kwargs['queue_id']
-        today = timezone.now().date()
-        return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
+class PublicSpecialtyView(generics.ListAPIView):
+    """
+    Permite que cualquier usuario busque especialidades por nombre.
+    """
+    queryset = Specialty.objects.all()
+    serializer_class = SpecialtySerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nombre']
