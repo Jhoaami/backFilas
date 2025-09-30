@@ -95,17 +95,11 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'is_active']
-        read_only_fields = ['numero_carnet']  # No se puede cambiar la PK
-
-    def update(self, instance, validated_data):
-        instance.nombre = validated_data.get('nombre', instance.nombre)
-        instance.fecha_nacimiento = validated_data.get('fecha_nacimiento', instance.fecha_nacimiento)
-
-        # Validamos rol antes de cambiarlo
-        rol = validated_data.get('rol', instance.rol)
-        if rol in [choice[0] for choice in User.Role.choices]:
-            instance.rol = rol
-
-        instance.is_active = validated_data.get('is_active', instance.is_active)
-        instance.save()
-        return instance
+        read_only_fields = ['numero_carnet'] # Correcto, la PK no se debe cambiar
+        # Hacemos que los campos no sean obligatorios en las actualizaciones parciales (PATCH)
+        extra_kwargs = {
+            'nombre': {'required': False},
+            'fecha_nacimiento': {'required': False},
+            'rol': {'required': False},
+            'is_active': {'required': False},
+        }

@@ -25,14 +25,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 class UserProfileView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_object(self):
-        return self.request.user
-
-
-class UserProfileView(generics.RetrieveAPIView):
     """
     Devuelve el perfil del usuario autenticado.
     """
