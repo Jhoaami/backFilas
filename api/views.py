@@ -197,7 +197,7 @@ class MyTicketsView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date() 
         return Ticket.objects.filter(paciente=user, fecha_validez=today)
 
 class QueueTicketsView(generics.ListAPIView):
@@ -207,7 +207,7 @@ class QueueTicketsView(generics.ListAPIView):
 
     def get_queryset(self):
         queue_id = self.kwargs['queue_id']
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
     
 
