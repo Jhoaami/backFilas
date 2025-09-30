@@ -9,17 +9,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'password']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'rol': {'read_only': True} 
         }
 
     def create(self, validated_data):
+        validated_data['rol'] = User.Role.PACIENTE  
         user = User.objects.create_user(**validated_data)
         return user
-
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'is_active']
+        fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol']
         read_only_fields = ['numero_carnet', 'rol']
 
 class CustomTokenObtainPairSerializer(serializers.Serializer):

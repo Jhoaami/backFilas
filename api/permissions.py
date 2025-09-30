@@ -1,19 +1,22 @@
+# api/permissions.py
 from rest_framework.permissions import BasePermission
-from .models import User
 
 class IsAdmin(BasePermission):
-    """
-    Permite el acceso solo a usuarios con el rol de ADMIN.
-    """
+    """Permite acceso solo a usuarios ADMIN"""
     def has_permission(self, request, view):
-        return (
-            request.user and 
-            request.user.is_authenticated and 
-            hasattr(request.user, 'rol') and 
-            request.user.rol == 'ADMIN'
-        )
+        return request.user.is_authenticated and request.user.rol == 'ADMIN'
 
 class IsDoctor(BasePermission):
-    """Permite acceso solo a usuarios con rol de Doctor."""
+    """Permite acceso solo a usuarios DOCTOR"""
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.rol == User.Role.DOCTOR
+        return request.user.is_authenticated and request.user.rol == 'DOCTOR'
+
+class IsPaciente(BasePermission):
+    """Permite acceso solo a usuarios PACIENTE"""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.rol == 'PACIENTE'
+
+class IsAuthenticated(BasePermission):
+    """Cualquier usuario autenticado"""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated

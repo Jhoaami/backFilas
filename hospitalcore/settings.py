@@ -13,9 +13,27 @@ import os
 from pathlib import Path
 from decouple import config 
 from datetime import timedelta
+import sys
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
 
-DEBUG = os.environ.get('RENDER', False) != 'True'
+DEBUG = True
 
 
 SIMPLE_JWT = {
@@ -71,10 +89,9 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'api.middleware.SetDatabaseRoleMiddleware',
 ]
 
 ROOT_URLCONF = 'hospitalcore.urls'
