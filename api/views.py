@@ -182,23 +182,26 @@ class CreateTicketView(APIView):
         serializer = TicketSerializer(ticket)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-class MyTicketsView(generics.ListAPIView):
+class MyTicketsAllView(generics.ListAPIView):
     """ Devuelve todas las fichas que tiene el paciente (sin filtrar por fecha). """
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        # Devolvemos todas las fichas donde el usuario es paciente
         return Ticket.objects.filter(paciente=user).order_by('-fecha_creacion')
+
+
+class MyTicketsTodayView(generics.ListAPIView):
     """ Devuelve las fichas que un paciente tiene para hoy. """
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        today = timezone.localtime(timezone.now()).date() 
+        today = timezone.localtime(timezone.now()).date()
         return Ticket.objects.filter(paciente=user, fecha_validez=today)
+
 
 class QueueTicketsView(generics.ListAPIView):
     """ Vista para la transparencia: devuelve las fichas de una fila para hoy. """
