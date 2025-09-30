@@ -210,7 +210,6 @@ class QueueTicketsView(generics.ListAPIView):
         queue_id = self.kwargs['queue_id']
         today = timezone.now().date()
         return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
-
     
 
 class PublicSpecialtyView(generics.ListAPIView):
