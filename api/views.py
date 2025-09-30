@@ -64,18 +64,17 @@ class QueueViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    API para que los administradores gestionen usuarios:
-    - Listar usuarios
-    - Buscar por número de carnet o nombre
-    - Cambiar rol (Paciente, Doctor, Admin)
-    - Activar/desactivar usuarios
+    Para que los admins gestionen usuarios:
+    - Listar
+    - Buscar
+    - Cambiar rol
+    - Activar/desactivar
     """
     queryset = User.objects.all()
     serializer_class = AdminUserSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['numero_carnet', 'nombre']  # Buscar por CI o nombre
-
+    search_fields = ['numero_carnet', 'nombre']
 # --- VISTAS PARA DOCTORES ---
 class DoctorQueuesView(generics.ListAPIView):
     """
