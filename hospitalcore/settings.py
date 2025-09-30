@@ -15,6 +15,8 @@ from decouple import config
 from datetime import timedelta
 
 
+DEBUG = os.environ.get('RENDER', False) != 'True'
+
 
 SIMPLE_JWT = {
     "USER_ID_FIELD": "numero_carnet", 
@@ -94,12 +96,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hospitalcore.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    
     
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -109,7 +109,6 @@ DATABASES = {
         'HOST': config('DB_HOST'),
         'PORT': config('DB_PORT', default='5432'),
     }
-       
     
     #'default': {
     #    'ENGINE': 'django.db.backends.postgresql',
