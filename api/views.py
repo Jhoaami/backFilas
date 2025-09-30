@@ -76,17 +76,6 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['numero_carnet', 'nombre']  # Buscar por CI o nombre
 
-    """
-    Vista para la transparencia: devuelve las fichas de una fila para hoy.
-    """
-    serializer_class = TicketSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        queue_id = self.kwargs['queue_id']
-        today = timezone.now().date()
-        return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
-
 # --- VISTAS PARA DOCTORES ---
 class DoctorQueuesView(generics.ListAPIView):
     """
