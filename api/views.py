@@ -204,13 +204,15 @@ class MyTicketsTodayView(generics.ListAPIView):
 
 
 class QueueTicketsView(generics.ListAPIView):
-    """ Devuelve TODOS los tickets de una fila, ordenados del más nuevo al más viejo. """
+    """ Vista para la transparencia: devuelve las fichas de una fila para hoy. """
     serializer_class = TicketSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] # Cualquiera autenticado puede verlas
 
     def get_queryset(self):
         queue_id = self.kwargs['queue_id']
-        return Ticket.objects.filter(queue_id=queue_id).order_by('-fecha_creacion')
+        today = timezone.localtime(timezone.now()).date()
+        return Ticket.objects.filter(queue_id=queue_id, fecha_validez=today)
+    
 
 class PublicSpecialtyView(generics.ListAPIView):
     """
