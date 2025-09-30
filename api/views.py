@@ -101,16 +101,27 @@ class UpdateTicketStatusView(generics.UpdateAPIView):
 
 class AvailableQueuesView(generics.ListAPIView):
     serializer_class = QueueSerializer
-    permission_classes = [permissions.IsAuthenticated] # Paciente o Doctor
+    permission_classes = [permissions.IsAuthenticated] # paciente o doctor
 
     def get_queryset(self):
-        today = timezone.now()
-        current_day = today.weekday() # Lunes=0, Domingo=6
-        
-        if current_day in [5, 6]: # Sábado o Domingo
-            return Queue.objects.filter(is_emergency=True)
-        else:
-            return Queue.objects.filter(models.Q(dia_semana=current_day) | models.Q(is_emergency=True))
+        today = timezone.localtime(timezone.now())
+        current_day = today.weekday()  # Lunes=0 ... Domingo=6
+
+        # Filas de emergencia siempre incluidas
+        qs = Queue.objects.filter(is_emergency=True)
+
+        # Filas regulares: aquellas que tengan current_day en dias_semana (si existe),
+        # o coincidan con dia_semana como fallback
+        regular_qs = Queue.objects.exclude(is_emergency=True)
+        # Filtrar mediante Python por la presencia en el array/valor.
+        # Hacemos esto en Python porque dias_semana es JSONField y la consulta puede variar según DB.
+        result_ids = []
+        for q in regular_qs:
+            dias = q.dias_semana if q.dias_semana else ([q.dia_semana] if q.dia_semana is not None else [])
+            if current_day in dias:
+                result_ids.append(q.id)
+
+        return qs | Queue.objects.filter(id__in=result_ids)
 
 class CreateTicketView(APIView):
     """
@@ -172,6 +183,14 @@ class CreateTicketView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class MyTicketsView(generics.ListAPIView):
+    """ Devuelve todas las fichas que tiene el paciente (sin filtrar por fecha). """
+    serializer_class = TicketSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Devolvemos todas las fichas donde el usuario es paciente
+        return Ticket.objects.filter(paciente=user).order_by('-fecha_creacion')
     """ Devuelve las fichas que un paciente tiene para hoy. """
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -201,3 +220,9 @@ class PublicSpecialtyView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ['nombre']
+
+
+class PublicQueueList(generics.ListAPIView):
+    serializer_class = QueueSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = Queue.objects.all()

@@ -58,32 +58,37 @@ class Specialty(models.Model):
 class Queue(models.Model):
     nombre = models.CharField(max_length=100)
     specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, related_name='queues')
-    # Relacionamos la fila con un usuario que TENGA el rol de Doctor.
-    # Es opcional, para filas generales.
     doctor = models.ForeignKey(
-        User, 
+        User,
         on_delete=models.SET_NULL,
-        null=True, 
-        blank=True, 
+        null=True,
+        blank=True,
         related_name='queues_assigned',
         limit_choices_to={'rol': User.Role.DOCTOR}
     )
-    
+
     hora_apertura = models.TimeField()
     hora_cierre = models.TimeField()
     fichas_maximas = models.PositiveIntegerField(null=True, blank=True)
-    
-    dia_semana = models.IntegerField(choices=[
-        (0, "Lunes"), (1, "Martes"), (2, "Miércoles"),
-        (3, "Jueves"), (4, "Viernes"), (5, "Sábado"), (6, "Domingo")
-    ])
-    
+
+    # Mantenemos dia_semana para compatibilidad con datos existentes
+    dia_semana = models.IntegerField(
+        choices=[
+            (0, "Lunes"), (1, "Martes"), (2, "Miércoles"),
+            (3, "Jueves"), (4, "Viernes"), (5, "Sábado"), (6, "Domingo")
+        ],
+        null=True,
+        blank=True
+    )
+
+    # Nuevo campo: lista de dias (0=Lunes ... 6=Domingo). Usamos JSONField para compatibilidad DB-wide.
+    dias_semana = models.JSONField(default=list, blank=True)  # ej: [0,2,4]
+
     is_emergency = models.BooleanField(default=False)
 
     def __str__(self):
         doctor_name = f" (Dr. {self.doctor.nombre})" if self.doctor else ""
         return f"{self.specialty.nombre} - {self.nombre}{doctor_name}"
-
 
 class Ticket(models.Model):
     # --- AÑADIMOS EL ESTADO DEL TICKET ---

@@ -7,31 +7,34 @@ from .views import (
     DoctorQueuesView, UpdateTicketStatusView, UserViewSet, PublicSpecialtyView
 )
 
+# Router para vistas tipo ViewSet (solo admins)
 router = DefaultRouter()
-# Rutas para Admins 
 router.register(r'especialidades', SpecialtyViewSet, basename='specialty')
 router.register(r'filas', QueueViewSet, basename='queue-admin')
 router.register(r'usuarios', UserViewSet, basename='user-admin')
 
-
 urlpatterns = [
-    # Autenticación
+    # ----------------- AUTENTICACIÓN -----------------
     path('auth/registro/', RegisterView.as_view(), name='register'),
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    
-    #Ruta para ver perfil de usuario
     path('auth/perfil/', UserProfileView.as_view(), name='user-profile'),
-    # Rutas para la gestión de Administradores
+
+    # ----------------- ADMINISTRACIÓN -----------------
     path('gestion/', include(router.urls)),
-    
-    # Rutas para Doctores
+
+    # ----------------- DOCTORES -----------------
     path('doctor/mis-filas/', DoctorQueuesView.as_view(), name='doctor-my-queues'),
-    path('doctor/tickets/<int:pk>/actualizar-estado/', UpdateTicketStatusView.as_view(), name='doctor-update-ticket-status'),
-    
-    # Rutas para Pacientes y Generales
+    path(
+        'doctor/tickets/<int:pk>/actualizar-estado/',
+        UpdateTicketStatusView.as_view(),
+        name='doctor-update-ticket-status'
+    ),
+
+    # ----------------- PACIENTES / PÚBLICO -----------------
     path('filas-disponibles/', AvailableQueuesView.as_view(), name='available-queues'),
     path('filas/<int:queue_id>/tickets/', QueueTicketsView.as_view(), name='queue-tickets'),
     path('tickets/crear/', CreateTicketView.as_view(), name='create-ticket'),
     path('mis-tickets/', MyTicketsView.as_view(), name='my-tickets'),
-    path('buscar-epecialidades/', PublicSpecialtyView.as_view(), name='public-specialties'),
+    path('buscar-especialidades/', PublicSpecialtyView.as_view(), name='public-specialties'),
+    path('filas-disponibles/', AvailableQueuesView.as_view(), name='available-queues'),
 ]

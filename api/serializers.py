@@ -59,18 +59,60 @@ class SpecialtySerializer(serializers.ModelSerializer):
 
 class QueueSerializer(serializers.ModelSerializer):
     specialty_name = serializers.CharField(source='specialty.nombre', read_only=True)
-    # Mostramos el nombre del doctor, si existe
     doctor_name = serializers.CharField(source='doctor.nombre', read_only=True, default=None)
-    
+
+    # Nuevo campo que expone la lista de días
+    dias_semana = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=6),
+        required=False,
+        allow_empty=True
+    )
+
+    # Para compatibilidad: mostramos dia_semana si dias_semana está vacío
+    dia_semana = serializers.IntegerField(required=False, allow_null=True)
+
     class Meta:
         model = Queue
         fields = [
-            'id', 'nombre', 'specialty', 'specialty_name', 
-            'doctor', 'doctor_name',  # Incluimos el ID y el nombre del doctor
-            'hora_apertura', 'hora_cierre', 'fichas_maximas', 
-            'dia_semana', 'is_emergency'
+            'id', 'nombre', 'specialty', 'specialty_name',
+            'doctor', 'doctor_name',
+            'hora_apertura', 'hora_cierre', 'fichas_maximas',
+            'dia_semana', 'dias_semana', 'is_emergency'
         ]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Normalizamos: si dias_semana está vacío y dia_semana existe, convertir a lista legible
+        dias = instance.dias_semana if instance.dias_semana else ([instance.dia_semana] if instance.dia_semana is not None else [])
+        data['dias_semana'] = dias
+        # también opcionalmente mantener dia_semana para compatibilidad
+        data['dia_semana'] = instance.dia_semana
+        return data
+
+    def create(self, validated_data):
+        # Extraer dias_semana y dia_semana sin que confundan
+        dias = validated_data.pop('dias_semana', [])
+        dia = validated_data.pop('dia_semana', None)
+        queue = super().create(validated_data)
+        # Guardar dias_semana si viene; si no viene pero dia tiene valor, lo ponemos como lista simple
+        if dias:
+            queue.dias_semana = dias
+        elif dia is not None:
+            queue.dias_semana = [dia]
+        queue.save(update_fields=['dias_semana'])
+        return queue
+
+    def update(self, instance, validated_data):
+        dias = validated_data.pop('dias_semana', None)
+        dia = validated_data.pop('dia_semana', None)
+        instance = super().update(instance, validated_data)
+        if dias is not None:
+            instance.dias_semana = dias
+            instance.save(update_fields=['dias_semana'])
+        elif dia is not None:
+            instance.dias_semana = [dia]
+            instance.save(update_fields=['dias_semana'])
+        return instance
 class TicketSerializer(serializers.ModelSerializer):
     paciente_nombre = serializers.CharField(source='paciente.nombre', read_only=True)
     creado_por_nombre = serializers.CharField(source='creado_por.nombre', read_only=True)
