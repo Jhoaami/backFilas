@@ -95,11 +95,26 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['numero_carnet', 'nombre', 'fecha_nacimiento', 'rol', 'is_active']
-        read_only_fields = ['numero_carnet'] # Correcto, la PK no se debe cambiar
-        # Hacemos que los campos no sean obligatorios en las actualizaciones parciales (PATCH)
-        extra_kwargs = {
-            'nombre': {'required': False},
-            'fecha_nacimiento': {'required': False},
-            'rol': {'required': False},
-            'is_active': {'required': False},
-        }
+        read_only_fields = ['numero_carnet']
+
+    def update(self, instance, validated_data):
+        # Campos que permitimos actualizar a través de este serializador
+        allowed_fields = ['nombre', 'fecha_nacimiento', 'rol', 'is_active']
+        fields_to_update = []
+
+        # Iteramos sobre los datos validados que llegaron en la petición PATCH
+        for field, value in validated_data.items():
+            if field in allowed_fields:
+                # Usamos setattr para actualizar el atributo en la instancia del modelo
+                setattr(instance, field, value)
+                fields_to_update.append(field)
+
+        # ¡Esta es la parte crucial!
+        # Guardamos la instancia, pero le decimos a Django que SOLO actualice
+        # los campos que hemos modificado. Esto evita activar efectos
+        # secundarios en el método .save() del modelo relacionados con otros
+        # campos (como el password).
+        if fields_to_update:
+            instance.save(update_fields=fields_to_update)
+
+        return instance
