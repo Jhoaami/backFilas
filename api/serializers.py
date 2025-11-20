@@ -25,7 +25,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['numero_carnet', 'rol']
 
 class CustomTokenObtainPairSerializer(serializers.Serializer):
-    # ... (sin cambios) ...
     numero_carnet = serializers.CharField()
     fecha_nacimiento = serializers.DateField()
 
@@ -61,6 +60,8 @@ class SpecialtySerializer(serializers.ModelSerializer):
 class QueueSerializer(serializers.ModelSerializer):
     specialty_name = serializers.CharField(source='specialty.nombre', read_only=True)
     doctor_name = serializers.CharField(source='doctor.nombre', read_only=True, default=None)
+    
+    # Campo calculado
     disponibles_hoy = serializers.SerializerMethodField()
 
     dias_semana = serializers.ListField(
@@ -79,17 +80,23 @@ class QueueSerializer(serializers.ModelSerializer):
             'dia_semana', 'dias_semana', 'is_emergency'
         ]
 
-    # Lógica para contar cuántos quedan
     def get_disponibles_hoy(self, obj):
-        hoy = timezone.now().date()
-        # Contamos los tickets creados HOY para esta fila
-        # Asumo que 'fecha_creacion' es un DateTimeField.
-        tickets_emitidos = obj.ticket_set.filter(fecha_creacion__date=hoy).count()
-        
-        disponibles = obj.fichas_maximas - tickets_emitidos
-        # Evitamos números negativos si por error se dieron más tickets
-        return max(disponibles, 0)
+        # 1. Manejo de filas ilimitadas (fichas_maximas es None)
+        if obj.fichas_maximas is None:
+            return 999 # Retornamos un número alto para indicar disponibilidad
 
+        # Importamos aquí para asegurar que no falte
+        from django.utils import timezone
+        hoy = timezone.now().date()
+
+        # Usamos 'obj.tickets' 
+        try:
+            tickets_emitidos = obj.tickets.filter(fecha_creacion__date=hoy).count()
+            disponibles = obj.fichas_maximas - tickets_emitidos
+            return max(disponibles, 0)
+        except Exception as e:
+            print(f"Error calculando disponibilidad en fila {obj.id}: {e}")
+            return 0
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
