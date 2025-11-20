@@ -67,6 +67,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     filter_backends = [filters.SearchFilter]
     search_fields = ['numero_carnet', 'nombre']
+    
 # --- VISTAS PARA DOCTORES ---
 class DoctorQueuesView(generics.ListAPIView):
     """
@@ -100,35 +101,35 @@ class DoctorDailyReportView(APIView):
     """
     Genera un reporte de los pacientes atendidos HOY por el doctor autenticado.
     """
-    permission_classes = [IsDoctor]
+    permission_classes = [IsDoctor] 
 
     def get(self, request):
-        # 1. Obtener la fecha de hoy
+        # 1. Obtener fecha de hoy
         hoy = timezone.now().date()
         
         # 2. Filtrar tickets:
-        # - Que pertenezcan a filas de ESTE doctor
-        # - Que sean válidos para HOY
-        # - Que su estado sea 'finalizado'
         tickets = Ticket.objects.filter(
-            queue__doctor=request.request.user,
+            queue__doctor=request.user,
+            
+            # Usamos fecha_validez para asegurar que son tickets de hoy
             fecha_validez=hoy,
-            status__in=['finalizado', 'atendido', 'completed'] 
+            
+            status='FINALIZADO' 
         ).order_by('fecha_creacion')
 
-        # 3. Calcular estadísticas básicas
+        # 3. Calcular estadísticas
         total_atendidos = tickets.count()
         
-        # 4. Serializar los datos para enviarlos al PDF en Flutter
+        # 4. Serializar
         serializer = TicketSerializer(tickets, many=True)
         
         return Response({
             "doctor_nombre": request.user.nombre,
-            "fecha": hoy,
+            "fecha": str(hoy), # Convertimos a string para evitar problemas de formato
             "total_atendidos": total_atendidos,
             "tickets": serializer.data
         }, status=status.HTTP_200_OK)
-
+        
 # --- VISTAS PARA PACIENTES Y PÚBLICAS ---
 
 class AvailableQueuesView(generics.ListAPIView):
