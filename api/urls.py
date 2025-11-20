@@ -4,7 +4,7 @@ from .views import (
     RegisterView, CustomTokenObtainPairView, UserProfileView,
     SpecialtyViewSet, QueueViewSet,
     AvailableQueuesView, CreateTicketView, MyTicketsAllView, MyTicketsTodayView, QueueTicketsView,
-    DoctorQueuesView, UpdateTicketStatusView, UserViewSet, PublicSpecialtyView, PublicQueueList
+    DoctorQueuesView, UpdateTicketStatusView, UserViewSet, PublicSpecialtyView, PublicQueueList, DoctorDailyReportView
 )
 
 # Router para vistas tipo ViewSet (solo admins)
@@ -29,6 +29,7 @@ urlpatterns = [
         UpdateTicketStatusView.as_view(),
         name='doctor-update-ticket-status'
     ),
+    path('doctor/reporte-diario/', DoctorDailyReportView.as_view(), name='doctor-daily-report'),
 
     # ----------------- PACIENTES / PÚBLICO -----------------
     path('filas-disponibles/', AvailableQueuesView.as_view(), name='available-queues'),

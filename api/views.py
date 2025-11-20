@@ -96,6 +96,38 @@ class UpdateTicketStatusView(generics.UpdateAPIView):
             )
         return super().update(request, *args, **kwargs)
 
+class DoctorDailyReportView(APIView):
+    """
+    Genera un reporte de los pacientes atendidos HOY por el doctor autenticado.
+    """
+    permission_classes = [IsDoctor]
+
+    def get(self, request):
+        # 1. Obtener la fecha de hoy
+        hoy = timezone.now().date()
+        
+        # 2. Filtrar tickets:
+        # - Que pertenezcan a filas de ESTE doctor
+        # - Que sean válidos para HOY
+        # - Que su estado sea 'finalizado'
+        tickets = Ticket.objects.filter(
+            queue__doctor=request.request.user,
+            fecha_validez=hoy,
+            status__in=['finalizado', 'atendido', 'completed'] 
+        ).order_by('fecha_creacion')
+
+        # 3. Calcular estadísticas básicas
+        total_atendidos = tickets.count()
+        
+        # 4. Serializar los datos para enviarlos al PDF en Flutter
+        serializer = TicketSerializer(tickets, many=True)
+        
+        return Response({
+            "doctor_nombre": request.user.nombre,
+            "fecha": hoy,
+            "total_atendidos": total_atendidos,
+            "tickets": serializer.data
+        }, status=status.HTTP_200_OK)
 
 # --- VISTAS PARA PACIENTES Y PÚBLICAS ---
 

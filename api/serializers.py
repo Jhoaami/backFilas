@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Specialty, Queue, Ticket
@@ -60,15 +61,12 @@ class SpecialtySerializer(serializers.ModelSerializer):
 class QueueSerializer(serializers.ModelSerializer):
     specialty_name = serializers.CharField(source='specialty.nombre', read_only=True)
     doctor_name = serializers.CharField(source='doctor.nombre', read_only=True, default=None)
+    disponibles_hoy = serializers.SerializerMethodField()
 
-    # Nuevo campo que expone la lista de días
     dias_semana = serializers.ListField(
         child=serializers.IntegerField(min_value=0, max_value=6),
-        required=False,
-        allow_empty=True
+        required=False, allow_empty=True
     )
-
-    # Para compatibilidad: mostramos dia_semana si dias_semana está vacío
     dia_semana = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
@@ -77,8 +75,21 @@ class QueueSerializer(serializers.ModelSerializer):
             'id', 'nombre', 'specialty', 'specialty_name',
             'doctor', 'doctor_name',
             'hora_apertura', 'hora_cierre', 'fichas_maximas',
+            'disponibles_hoy', 
             'dia_semana', 'dias_semana', 'is_emergency'
         ]
+
+    # Lógica para contar cuántos quedan
+    def get_disponibles_hoy(self, obj):
+        hoy = timezone.now().date()
+        # Contamos los tickets creados HOY para esta fila
+        # Asumo que 'fecha_creacion' es un DateTimeField.
+        tickets_emitidos = obj.ticket_set.filter(fecha_creacion__date=hoy).count()
+        
+        disponibles = obj.fichas_maximas - tickets_emitidos
+        # Evitamos números negativos si por error se dieron más tickets
+        return max(disponibles, 0)
+
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -117,11 +128,14 @@ class TicketSerializer(serializers.ModelSerializer):
     paciente_nombre = serializers.CharField(source='paciente.nombre', read_only=True)
     creado_por_nombre = serializers.CharField(source='creado_por.nombre', read_only=True)
     queue_nombre = serializers.CharField(source='queue.nombre', read_only=True)
+    specialty_nombre = serializers.CharField(source='queue.specialty.nombre', read_only=True, default="General")
     
     class Meta:
         model = Ticket
         fields = [
-            'id', 'queue', 'queue_nombre', 'paciente', 'paciente_nombre', 
+            'id', 'queue', 'queue_nombre', 
+            'specialty_nombre', 
+            'paciente', 'paciente_nombre', 
             'creado_por', 'creado_por_nombre', 'numero_ficha', 'fecha_creacion', 
             'fecha_validez', 'status' 
         ]
@@ -152,7 +166,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
                 setattr(instance, field, value)
                 fields_to_update.append(field)
 
-        # ¡Esta es la parte crucial!
+
         # Guardamos la instancia, pero le decimos a Django que SOLO actualice
         # los campos que hemos modificado. Esto evita activar efectos
         # secundarios en el método .save() del modelo relacionados con otros
